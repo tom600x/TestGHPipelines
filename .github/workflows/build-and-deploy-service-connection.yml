@@ -41,6 +41,9 @@ jobs:
       - name: Create deployment package
         run: |
           cd "${{ env.AZURE_WEBAPP_PACKAGE_PATH }}"
+          mkdir -p ../deploy
+          cp -r . ../deploy/
+          cd ../deploy
           zip -r ../app.zip .
 
       - name: Upload artifact
@@ -101,6 +104,7 @@ jobs:
             --name "${{ env.AZURE_WEBAPP_NAME }}" \
             --src-path ./app.zip \
             --type zip
+          sleep 20
 
       - name: Remove Runner IP from Access Restrictions
         if: always()

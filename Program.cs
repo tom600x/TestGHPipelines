@@ -1,22 +1,14 @@
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-builder.Services.AddRazorPages();
+builder.Services.AddRouting();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (!app.Environment.IsDevelopment())
-{
-    app.UseExceptionHandler("/Error");
-}
+app.UseExceptionHandler(_ => { });
 
 app.UseRouting();
 
-app.UseAuthorization();
-
-app.MapStaticAssets();
-app.MapRazorPages()
-   .WithStaticAssets();
+app.MapGet("/", () => Results.Text("Azure App Service deployment test is running.", "text/plain"));
+app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
 
 app.Run();
