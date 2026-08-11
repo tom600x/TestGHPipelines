@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 env:
-  AZURE_WEBAPP_NAME: 'mvc10testgh-b9exhudcadgteqgh.centralus-01.azurewebsites.net'
+  AZURE_WEBAPP_NAME: 'MVC10TestGH'
   AZURE_RESOURCE_GROUP: 'GitHub-Test-RG-CUS'
   AZURE_WEBAPP_PACKAGE_PATH: './publish'
   DOTNET_VERSION: '10.0.x'
