@@ -1,0 +1,26 @@
+## Build output
+bin/
+obj/
+out/
+publish/
+app.zip
+
+## User-specific files
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## OS files
+.DS_Store
+Thumbs.db
+
+## Logs
+*.log
+
+## Azure / deployment
+.azure/
+*.pubxml
+*.publishsettings

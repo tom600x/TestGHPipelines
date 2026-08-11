@@ -1,0 +1,121 @@
+name: Build and Deploy to Azure Web App (Service Connection)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  AZURE_WEBAPP_NAME: 'mvc10testgh-b9exhudcadgteqgh.centralus-01.azurewebsites.net'
+  AZURE_RESOURCE_GROUP: 'GitHub-Test-RG-CUS'
+  AZURE_WEBAPP_PACKAGE_PATH: './publish'
+  DOTNET_VERSION: '10.0.x'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build application
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Run tests
+        run: dotnet test --configuration Release --no-build --verbosity normal
+
+      - name: Publish application
+        run: dotnet publish -c Release -o "${{ env.AZURE_WEBAPP_PACKAGE_PATH }}"
+
+      - name: Create deployment package
+        run: |
+          cd "${{ env.AZURE_WEBAPP_PACKAGE_PATH }}"
+          zip -r ../app.zip .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: webapp-artifact
+          path: app.zip
+          retention-days: 1
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: webapp-artifact
+          path: .
+
+      - name: Azure Login (Service Principal)
+        uses: azure/login@v2
+        with:
+          creds: |
+            {
+              "clientId": "${{ secrets.AZURE_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.AZURE_CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.AZURE_TENANT_ID }}"
+            }
+
+      - name: Get GitHub Runner IP Address
+        id: get-ip
+        run: |
+          ip=$(curl -s https://api.ipify.org)
+          echo "runner_ip=$ip" >> "$GITHUB_OUTPUT"
+          echo "Runner IP Address: $ip"
+
+      - name: Add Runner IP to App Service Access Restrictions
+        run: |
+          ip="${{ steps.get-ip.outputs.runner_ip }}"
+          echo "Adding IP $ip to access restrictions..."
+          az webapp config access-restriction add \
+            --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
+            --name "${{ env.AZURE_WEBAPP_NAME }}" \
+            --rule-name "GitHub Runner IP" \
+            --action Allow \
+            --ip-address "${ip}/32" \
+            --priority 100 \
+            --scm-site true
+        continue-on-error: true
+
+      - name: Deploy to Azure Web App via Azure CLI
+        run: |
+          az webapp deploy \
+            --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
+            --name "${{ env.AZURE_WEBAPP_NAME }}" \
+            --src-path ./app.zip \
+            --type zip
+
+      - name: Remove Runner IP from Access Restrictions
+        if: always()
+        run: |
+          echo "Cleaning up: Removing GitHub Runner IP from access restrictions..."
+          az webapp config access-restriction remove \
+            --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
+            --name "${{ env.AZURE_WEBAPP_NAME }}" \
+            --rule-name "GitHub Runner IP" \
+            --scm-site true
+        continue-on-error: true
+
+      - name: Azure Logout
+        if: always()
+        run: az logout
+
+      - name: Deployment Status
+        run: echo "Successfully deployed to ${{ env.AZURE_WEBAPP_NAME }}"

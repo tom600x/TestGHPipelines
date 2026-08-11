@@ -1,0 +1,12 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Deployment Test";
+}
+
+<div class="text-center py-5">
+    <h1 class="display-4">Azure App Service Deployment Test</h1>
+    <p class="lead mt-3">This simple .NET 10 web app is ready for GitHub Actions deployment testing.</p>
+    <p class="mt-4">Environment: @Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")</p>
+    <p class="mt-2">Timestamp: @DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss") UTC</p>
+</div>
