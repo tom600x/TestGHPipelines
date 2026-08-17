@@ -1,0 +1,62 @@
+name: Deploy
+
+on:
+  workflow_call:
+    inputs:
+      environment_name:
+        required: true
+        type: string
+      artifact_run_id:
+        description: 'The workflow run ID to download the artifact from (leave empty to use current run)'
+        required: false
+        type: string
+        default: ''
+
+permissions:
+  id-token: write
+  contents: read
+  actions: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    # Secrets and variables below are resolved from the named GitHub Environment,
+    # so each environment (Development, UAT, Production) can use its own Azure
+    # service connection by configuring the following in
+    # Settings → Environments → <environment name>:
+    #
+    # Secrets:
+    #   AZURE_CLIENT_ID       — App Registration client ID for this environment
+    #   AZURE_TENANT_ID       — Azure AD tenant ID for this environment
+    #   AZURE_SUBSCRIPTION_ID — Azure subscription ID for this environment
+    #
+    # Variables:
+    #   APP_NAME              — Azure Web App name for this environment
+    #
+    # Dev and UAT can share one service connection (same values) while Production
+    # uses a completely different service connection (different values) — simply
+    # configure the secrets/variables independently per environment.
+    environment:
+      name: ${{ inputs.environment_name }}
+
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: webapp
+          run-id: ${{ inputs.artifact_run_id != '' && inputs.artifact_run_id || github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.APP_NAME }}
+          package: .
