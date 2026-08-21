@@ -106,8 +106,8 @@ jobs:
           ip="${{ steps.get-ip.outputs.runner_ip }}"
           echo "Adding IP $ip to access restrictions..."
           az webapp config access-restriction add \
-            --resource-group "$AZURE_RESOURCE_GROUP" \
-            --name "$AZURE_WEBAPP_NAME" \
+            --resource-group "${{vars.AZURE_RESOURCE_GROUP}}" \
+            --name " ${{vars.AZURE_WEBAPP_NAME}}" \
             --rule-name "GitHub Runner IP" \
             --action Allow \
             --ip-address "${ip}/32" \
@@ -127,8 +127,8 @@ jobs:
         run: |
           echo "Cleaning up: Removing GitHub Runner IP from access restrictions..."
           az webapp config access-restriction remove \
-            --resource-group "$AZURE_RESOURCE_GROUP" \
-            --name "$AZURE_WEBAPP_NAME" \
+            --resource-group "${{vars.AZURE_RESOURCE_GROUP}}" \
+            --name " ${{vars.AZURE_WEBAPP_NAME}}" \
             --rule-name "GitHub Runner IP" \
             --scm-site true
         continue-on-error: true
