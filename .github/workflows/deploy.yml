@@ -64,8 +64,6 @@ jobs:
         run: |
           if [ -n "$REQUESTED_RUN_ID" ]; then
             run_id="$REQUESTED_RUN_ID"
-          elif [ "${{ github.event_name }}" = "workflow_call" ]; then
-            run_id="${{ github.run_id }}"
           else
             run_id=$(gh api \
               --method GET \

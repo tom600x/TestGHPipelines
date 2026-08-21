@@ -51,4 +51,5 @@ jobs:
     uses: ./.github/workflows/deploy.yml
     with:
       environment_name: Development
+      artifact_run_id: ${{ github.run_id }}
     secrets: inherit
