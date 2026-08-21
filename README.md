@@ -1,4 +1,4 @@
-# Azure GitHub Actions Service Principal Setup
+# Azure - GitHub Actions Service Principal Setup
 
 This repository includes a PowerShell script to create an Azure service principal for GitHub Actions and grant it Contributor access to the resource group `GitHub-Test-RG-CUS` in subscription `c73e01ad-eb1a-4584-addc-a98fa1388c9a`.
 
