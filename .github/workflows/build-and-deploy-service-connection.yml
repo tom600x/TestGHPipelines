@@ -1,10 +1,6 @@
 name: Build and Deploy to Azure Web App (Service Connection)
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
   workflow_dispatch:
     inputs:
       environment_name:
@@ -63,9 +59,8 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
     environment:
-      name: ${{ github.event_name == 'workflow_dispatch' && inputs.environment_name || 'Development' }}
+      name: ${{ inputs.environment_name }}
     env:
       AZURE_WEBAPP_NAME: ${{ vars.AZURE_WEBAPP_NAME }}
       AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
@@ -140,4 +135,4 @@ jobs:
         run: az logout
 
       - name: Deployment Status
-        run: echo "Successfully deployed to $AZURE_WEBAPP_NAME in ${{ github.event_name == 'workflow_dispatch' && inputs.environment_name || 'Development' }}"
+        run: echo "Successfully deployed to $AZURE_WEBAPP_NAME in ${{ inputs.environment_name }}"

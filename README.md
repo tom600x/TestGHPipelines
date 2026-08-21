@@ -48,7 +48,7 @@ This repository contains three workflows that together implement a build-once, p
 | `build-and-deploy-dev.yml` | Builds the app, stores the artifact, and deploys to Development on every push to `main` |
 | `deploy.yml` | Reusable deployment workflow that can also be run manually for Development, UAT, or Production |
 | `promote.yml` | Manually promotes a previously built artifact to UAT or Production after an approval gate |
-| `build-and-deploy-service-connection.yml` | Builds and deploys on pushes to `main`, or manually to Development, UAT, or Production |
+| `build-and-deploy-service-connection.yml` | Manually builds the selected branch and deploys it to Development, UAT, or Production |
 
 ### Workflow overview
 
@@ -123,6 +123,16 @@ Go to **Settings → Secrets and variables → Actions → Variables → Reposit
 
 > **Tip:** If `APPROVERS_ENV` is not set the workflow defaults to an environment named `approval-gate`.
 
+`APPROVERS_ENV` must contain one GitHub Environment name. Do not put GitHub usernames, comma-separated approvers, or JSON in this variable. For example:
+
+```text
+APPROVERS_ENV=approval-gate
+```
+
+To configure multiple approvers, open **Settings → Environments → approval-gate**, enable **Required reviewers**, and add each GitHub user or team separately. You can also enable **Prevent self-review** when the person starting the promotion must not approve it.
+
+By default, approval from any one configured required reviewer allows the deployment to continue; every listed reviewer is not required to approve. Required-reviewer support can depend on the repository visibility and GitHub plan.
+
 #### How the approval flow works
 
 1. A developer runs **Actions → Promote to UAT or Production**, enters the run ID of the build they want to promote, and selects the target environment.
@@ -164,7 +174,7 @@ Both deployment workflows provide an environment choice with `Development`, `UAT
 2. Select the branch and choose `Development`, `UAT`, or `Production` for `environment_name`.
 3. Select **Run workflow**. The workflow builds the current branch and deploys the resulting artifact to the selected environment.
 
-Pushes to `main` continue to deploy automatically to `Development`. Pull requests build and test the application but do not deploy it.
+This workflow runs only when started manually. Select the branch in the **Run workflow** form to control which revision is built and deployed.
 
 #### Deploy an existing artifact directly
 
