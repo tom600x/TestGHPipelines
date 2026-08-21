@@ -1,0 +1,44 @@
+name: Promote to UAT or Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      artifact_run_id:
+        description: 'Run ID of the Build and Deploy Dev workflow to promote'
+        required: true
+        type: string
+      target_environment:
+        description: 'Target environment to deploy to'
+        required: true
+        type: choice
+        options:
+          - UAT
+          - Production
+
+permissions:
+  id-token: write
+  contents: read
+  actions: read
+
+jobs:
+  # This job targets the GitHub Environment named in the repository variable
+  # APPROVERS_ENV (e.g. "approval-gate"). Configure required reviewers on that
+  # environment in Settings → Environments → <APPROVERS_ENV> → Required reviewers.
+  # The workflow will pause here until an approver reviews and approves the deployment.
+  approval:
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ vars.APPROVERS_ENV || 'approval-gate' }}
+    steps:
+      - name: Approval received
+        run: |
+          echo "Deployment to ${{ inputs.target_environment }} approved."
+          echo "Artifact run ID: ${{ inputs.artifact_run_id }}"
+
+  deploy:
+    needs: approval
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment_name: ${{ inputs.target_environment }}
+      artifact_run_id: ${{ inputs.artifact_run_id }}
+    secrets: inherit
