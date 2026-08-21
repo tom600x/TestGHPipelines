@@ -71,5 +71,5 @@ jobs:
       - name: Deploy Web App
         uses: azure/webapps-deploy@v3
         with:
-          app-name: ${{ vars.APP_NAME || vars.AZURE_WEBAPP_NAME || 'MVC10TestGH' }}
+          app-name: ${{ vars.APP_NAME || vars.AZURE_WEBAPP_NAME || 'MVC10TestGH' || secrets.AZURE_WEBAPP_NAME }}
           package: .
