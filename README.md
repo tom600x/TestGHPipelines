@@ -98,6 +98,8 @@ For each of the three deployment environments (`Development`, `UAT`, `Production
 |---|---|
 | `APP_NAME` | Name of the Azure Web App to deploy to in this environment |
 
+If `APP_NAME` is not set, deployment falls back to repository variable `AZURE_WEBAPP_NAME`; if that is also unset, it defaults to `MVC10TestGH`.
+
 #### Azure OIDC federated credential
 
 Each App Registration used above must have a federated identity credential added so GitHub Actions can authenticate without a client secret:
