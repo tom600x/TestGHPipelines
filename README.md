@@ -101,6 +101,14 @@ For each of the three deployment environments (`Development`, `UAT`, `Production
 | `AZURE_WEBAPP_NAME` | Name of the Azure Web App to deploy to in this environment |
 | `AZURE_RESOURCE_GROUP` | Resource group containing the web app |
 
+Configure `AZURE_WEBAPP_NAME` with these environment-specific values:
+
+| GitHub Environment | `AZURE_WEBAPP_NAME` value |
+|---|---|
+| `Development` | `MVC10TestGH` |
+| `UAT` | `mvc10testgh-uat` |
+| `Production` | `mvc10testgh-prod` |
+
 `build-and-deploy-service-connection.yml` requires both variables on every deployment environment and fails before Azure login if either is missing. The reusable `deploy.yml` workflow uses `AZURE_WEBAPP_NAME` and retains its existing `MVC10TestGH` fallback.
 
 ### Approval gate setup
