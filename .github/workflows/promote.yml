@@ -4,9 +4,10 @@ on:
   workflow_dispatch:
     inputs:
       artifact_run_id:
-        description: 'Run ID of the Build and Deploy Dev workflow to promote'
-        required: true
+        description: 'Run ID of the Build and Deploy Dev workflow (leave empty for latest successful build)'
+        required: false
         type: string
+        default: ''
       target_environment:
         description: 'Target environment to deploy to'
         required: true
@@ -33,7 +34,7 @@ jobs:
       - name: Approval received
         run: |
           echo "Deployment to ${{ inputs.target_environment }} approved."
-          echo "Artifact run ID: ${{ inputs.artifact_run_id }}"
+          echo "Artifact run ID: ${{ inputs.artifact_run_id || 'latest successful build' }}"
 
   deploy:
     needs: approval

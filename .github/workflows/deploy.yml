@@ -12,9 +12,10 @@ on:
           - UAT
           - Production
       artifact_run_id:
-        description: 'Run ID of the Build and Deploy Dev workflow containing the webapp artifact'
-        required: true
+        description: 'Run ID of the Build and Deploy Dev workflow (leave empty for latest successful build)'
+        required: false
         type: string
+        default: ''
   workflow_call:
     inputs:
       environment_name:
@@ -55,11 +56,38 @@ jobs:
       name: ${{ inputs.environment_name }}
 
     steps:
+      - name: Resolve Artifact Run ID
+        id: resolve-run
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REQUESTED_RUN_ID: ${{ inputs.artifact_run_id }}
+        run: |
+          if [ -n "$REQUESTED_RUN_ID" ]; then
+            run_id="$REQUESTED_RUN_ID"
+          elif [ "${{ github.event_name }}" = "workflow_call" ]; then
+            run_id="${{ github.run_id }}"
+          else
+            run_id=$(gh api \
+              --method GET \
+              "/repos/$GITHUB_REPOSITORY/actions/workflows/build-and-deploy-dev.yml/runs" \
+              -f status=success \
+              -f per_page=1 \
+              --jq '.workflow_runs[0].id')
+          fi
+
+          if [ -z "$run_id" ] || [ "$run_id" = "null" ]; then
+            echo "No successful Build and Deploy Dev workflow run was found." >&2
+            exit 1
+          fi
+
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+          echo "Using artifact from workflow run $run_id"
+
       - name: Download Artifact
         uses: actions/download-artifact@v4
         with:
           name: webapp
-          run-id: ${{ inputs.artifact_run_id != '' && inputs.artifact_run_id || github.run_id }}
+          run-id: ${{ steps.resolve-run.outputs.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Azure Login
@@ -112,4 +140,4 @@ jobs:
         run: az logout
 
       - name: Deployment Status
-        run: echo "Successfully deployed to $AZURE_WEBAPP_NAME in ${{ inputs.environment_name }}" + " Run Id = " + "${{ inputs.artifact_run_id != '' && inputs.artifact_run_id || github.run_id }}"
+        run: echo "Successfully deployed to $AZURE_WEBAPP_NAME in ${{ inputs.environment_name }} from run ${{ steps.resolve-run.outputs.run_id }}"
