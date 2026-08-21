@@ -6,10 +6,17 @@ on:
   pull_request:
     branches: [ main ]
   workflow_dispatch:
+    inputs:
+      environment_name:
+        description: 'GitHub Environment to deploy to'
+        required: true
+        type: choice
+        options:
+          - Development
+          - UAT
+          - Production
 
 env:
-  AZURE_WEBAPP_NAME: 'MVC10TestGH'
-  AZURE_RESOURCE_GROUP: 'GitHub-Test-RG-CUS'
   AZURE_WEBAPP_PACKAGE_PATH: './publish'
   DOTNET_VERSION: '10.0.x'
 
@@ -56,9 +63,20 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
+    environment:
+      name: ${{ github.event_name == 'workflow_dispatch' && inputs.environment_name || 'Development' }}
+    env:
+      AZURE_WEBAPP_NAME: ${{ vars.AZURE_WEBAPP_NAME }}
+      AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
 
     steps:
+      - name: Validate environment configuration
+        shell: bash
+        run: |
+          test -n "$AZURE_WEBAPP_NAME" || { echo "AZURE_WEBAPP_NAME is not configured for this GitHub Environment."; exit 1; }
+          test -n "$AZURE_RESOURCE_GROUP" || { echo "AZURE_RESOURCE_GROUP is not configured for this GitHub Environment."; exit 1; }
+
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
@@ -88,8 +106,8 @@ jobs:
           ip="${{ steps.get-ip.outputs.runner_ip }}"
           echo "Adding IP $ip to access restrictions..."
           az webapp config access-restriction add \
-            --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
-            --name "${{ env.AZURE_WEBAPP_NAME }}" \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --name "$AZURE_WEBAPP_NAME" \
             --rule-name "GitHub Runner IP" \
             --action Allow \
             --ip-address "${ip}/32" \
@@ -100,8 +118,8 @@ jobs:
       - name: Deploy to Azure Web App via Azure CLI
         run: |
           az webapp deploy \
-            --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
-            --name "${{ env.AZURE_WEBAPP_NAME }}" \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --name "$AZURE_WEBAPP_NAME" \
             --src-path ./app.zip \
             --type zip
           sleep 20
@@ -111,8 +129,8 @@ jobs:
         run: |
           echo "Cleaning up: Removing GitHub Runner IP from access restrictions..."
           az webapp config access-restriction remove \
-            --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
-            --name "${{ env.AZURE_WEBAPP_NAME }}" \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --name "$AZURE_WEBAPP_NAME" \
             --rule-name "GitHub Runner IP" \
             --scm-site true
         continue-on-error: true
@@ -122,4 +140,4 @@ jobs:
         run: az logout
 
       - name: Deployment Status
-        run: echo "Successfully deployed to ${{ env.AZURE_WEBAPP_NAME }}"
+        run: echo "Successfully deployed to $AZURE_WEBAPP_NAME in ${{ github.event_name == 'workflow_dispatch' && inputs.environment_name || 'Development' }}"

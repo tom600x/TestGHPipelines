@@ -1,6 +1,20 @@
 name: Deploy
 
 on:
+  workflow_dispatch:
+    inputs:
+      environment_name:
+        description: 'GitHub Environment to deploy to'
+        required: true
+        type: choice
+        options:
+          - Development
+          - UAT
+          - Production
+      artifact_run_id:
+        description: 'Run ID of the Build and Deploy Dev workflow containing the webapp artifact'
+        required: true
+        type: string
   workflow_call:
     inputs:
       environment_name:

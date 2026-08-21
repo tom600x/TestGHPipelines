@@ -46,8 +46,9 @@ This repository contains three workflows that together implement a build-once, p
 | Workflow file | Purpose |
 |---|---|
 | `build-and-deploy-dev.yml` | Builds the app, stores the artifact, and deploys to Development on every push to `main` |
-| `deploy.yml` | Reusable deployment workflow called by the other two; not triggered directly |
+| `deploy.yml` | Reusable deployment workflow that can also be run manually for Development, UAT, or Production |
 | `promote.yml` | Manually promotes a previously built artifact to UAT or Production after an approval gate |
+| `build-and-deploy-service-connection.yml` | Builds and deploys on pushes to `main`, or manually to Development, UAT, or Production |
 
 ### Workflow overview
 
@@ -87,6 +88,7 @@ For each of the three deployment environments (`Development`, `UAT`, `Production
 | Secret name | Description |
 |---|---|
 | `AZURE_CLIENT_ID` | Client ID of the Azure App Registration / managed identity for this environment |
+| `AZURE_CLIENT_SECRET` | Client secret for the Azure App Registration used by these workflows |
 | `AZURE_TENANT_ID` | Azure AD tenant ID for this environment |
 | `AZURE_SUBSCRIPTION_ID` | Azure subscription ID for this environment |
 
@@ -96,20 +98,10 @@ For each of the three deployment environments (`Development`, `UAT`, `Production
 
 | Variable name | Description |
 |---|---|
-| `APP_NAME` | Name of the Azure Web App to deploy to in this environment |
+| `AZURE_WEBAPP_NAME` | Name of the Azure Web App to deploy to in this environment |
+| `AZURE_RESOURCE_GROUP` | Resource group containing the web app |
 
-If `APP_NAME` is not set, deployment falls back to repository variable `AZURE_WEBAPP_NAME`; if that is also unset, it defaults to `MVC10TestGH`.
-
-#### Azure OIDC federated credential
-
-Each App Registration used above must have a federated identity credential added so GitHub Actions can authenticate without a client secret:
-
-- **Issuer:** `https://token.actions.githubusercontent.com`
-- **Subject:** `repo:<org>/<repo>:environment:<EnvironmentName>`  
-  e.g. `repo:tom600x/TestGHPipelines:environment:Production`
-- **Audience:** `api://AzureADTokenExchange`
-
----
+`build-and-deploy-service-connection.yml` requires both variables on every deployment environment and fails before Azure login if either is missing. The reusable `deploy.yml` workflow uses `AZURE_WEBAPP_NAME` and retains its existing `MVC10TestGH` fallback.
 
 ### Approval gate setup
 
@@ -159,3 +151,26 @@ Go to **Settings → Secrets and variables → Actions → Variables → Reposit
    **Actions → Promote to UAT or Production → \<run\> → Review deployments**.
 
 5. After approval the artifact is downloaded from the selected run and deployed to the chosen environment.
+
+---
+
+### Run a deployment manually
+
+Both deployment workflows provide an environment choice with `Development`, `UAT`, and `Production`. The selected GitHub Environment controls which environment secrets and variables are used.
+
+#### Build a fresh artifact and deploy it
+
+1. Go to **Actions → Build and Deploy to Azure Web App (Service Connection) → Run workflow**.
+2. Select the branch and choose `Development`, `UAT`, or `Production` for `environment_name`.
+3. Select **Run workflow**. The workflow builds the current branch and deploys the resulting artifact to the selected environment.
+
+Pushes to `main` continue to deploy automatically to `Development`. Pull requests build and test the application but do not deploy it.
+
+#### Deploy an existing artifact directly
+
+1. Find the run ID of a successful **Build and Deploy Dev** run. The run ID is the number in `https://github.com/<org>/<repo>/actions/runs/<RUN_ID>`.
+2. Go to **Actions → Deploy → Run workflow**.
+3. Select `Development`, `UAT`, or `Production` for `environment_name` and enter the prior run ID in `artifact_run_id`.
+4. Select **Run workflow**. The workflow downloads the `webapp` artifact from that run and deploys it using the selected environment's configuration.
+
+Use **Promote to UAT or Production** instead when the deployment must pass through the configured approval gate.
